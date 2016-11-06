@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-# TODO: Replace with https://sh.rustup.rs when it supports -y and such
 rustup_init_url='https://static.rust-lang.org/rustup.sh'
 
 function for-target {
@@ -14,20 +13,28 @@ function for-target {
 }
 
 function install-musl {
-    curl 'http://www.musl-libc.org/releases/musl-1.1.15.tar.gz' | tar xzf -
-    cd musl-1.1.15
-    mkdir "$HOME/musl"
-    ./configure --prefix="$HOME/musl"
-    make -sj
-    make -sj install
+    if [ -n "$MUSL" ]
+    then
+        musl_archive="crossx86-$MUSL-1.1.12.tar.xz"
+        wget "https://s3-eu-west-1.amazonaws.com/record-query/musl-cross-compilers/musl-1.1.12/$musl_archive"
+        tar xaf "$musl_archive"
+        mv "$MUSL" musl
+    fi
+}
+
+function install-rust {
+    curl "$rustup_init_url" -sSLf | sh -s -- -y --spec="$TOOLCHAIN" --with-target="$TARGET"
+}
+
+function install-v8 {
+    wget "https://s3-eu-west-1.amazonaws.com/record-query/v8/$TARGET/5.6.222/v8-build.tar.gz"
+    tar -xvf v8-build.tar.gz
 }
 
 function ci-install {
-    for-target x86_64-unknown-linux-musl install-musl
-    curl "$rustup_init_url" -sSLf | sh -s -- -y --spec="$TOOLCHAIN" --with-target="$TARGET"
-
-    wget "https://s3-eu-west-1.amazonaws.com/record-query/v8/$TARGET/5.6.0-438c5eb28bb9a20782c03cd70dcdf3fa04f09e28/v8-build.tar.gz"
-    tar -xvf v8-build.tar.gz
+    install-musl
+    install-rust
+    install-v8
 }
 
 function ci-test {

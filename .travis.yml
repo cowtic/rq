@@ -5,10 +5,65 @@ dist: trusty
 matrix:
   include:
     - os: linux
-      env: TOOLCHAIN=stable TARGET=x86_64-unknown-linux-gnu
+      env: >
+        TARGET=x86_64-unknown-linux-gnu
+    - os: linux
+      env: >
+        TARGET=x86_64-unknown-linux-musl
+        MUSL=x86_64-linux-musl
+    - os: linux
+      env: >
+        TARGET=i686-unknown-linux-gnu
+      addons:
+        apt:
+          packages:
+            - gcc-multilib
+            - g++-multilib
+    - os: linux
+      env: >
+        TARGET=i686-unknown-linux-musl
+        MUSL=x86_64-x32-linux-musl
+      addons:
+        apt:
+          packages:
+            - gcc-multilib
+            - g++-multilib
+    - os: linux
+      env: >
+        TARGET=armv7-unknown-linux-gnueabihf
+        SKIP_TESTS=1
+      addons:
+        apt:
+          packages:
+            - binutils-arm-linux-gnueabihf
+            - gcc-arm-linux-gnueabihf
+            - gcc-4.8-multilib-arm-linux-gnueabihf
+            - g++-arm-linux-gnueabihf
+            - g++-4.8-multilib-arm-linux-gnueabihf
+            - libc6-dev-armhf-cross
+            - libstdc++6-armhf-cross
+            # For building snapshots, a 32-bit host compiler is needed
+            - gcc-multilib
+            - g++-multilib
+    - os: linux
+      env: >
+        TARGET=armv7-unknown-linux-musleabihf
+        MUSL=arm-linux-musleabihf
+        SKIP_TESTS=1
+      addons:
+        apt:
+          packages:
+            # For building snapshots, a 32-bit host compiler is needed
+            - gcc-multilib
+            - g++-multilib
     - os: osx
       osx_image: xcode8
-      env: TOOLCHAIN=stable TARGET=x86_64-apple-darwin
+      env: >
+        TARGET=x86_64-apple-darwin
+    - os: osx
+      osx_image: xcode8
+      env: >
+        TARGET=i686-apple-darwin
 
 env:
   global:
@@ -17,8 +72,6 @@ env:
 
 addons:
   apt:
-    sources:
-      - sourceline: 'ppa:pinepain/libv8-5.4'
     packages:
       # Coverage deps
       - libcurl4-openssl-dev
@@ -26,8 +79,9 @@ addons:
       - libdw-dev
       - binutils-dev
 
-before_install:
-  - export PATH="$HOME/.cargo/bin:$HOME/musl/bin:$PATH"
+install:
+  - if [ -n "$MUSL" ]; then export PATH="$PWD/musl/bin:$PATH"; fi
+  - export PATH="$HOME/.cargo/bin:$PATH"
   - ./ci install
 
 script: ./ci test
